@@ -7,7 +7,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="">
     <meta name="author" content="Martin Villalba">
-    <meta name="generator" content="Hugo 0.118.2">
     <title>LLM word probabilities demo</title>
     <link rel="canonical" href="https://getbootstrap.com/docs/5.3/examples/starter-template/">
 	<link rel="stylesheet" href="./static/css@3.css">
@@ -164,7 +163,7 @@
 		<header class="d-flex align-items-center pb-3 mb-5 border-bottom">
 			<a href="https://getbootstrap.com/" class="d-flex align-items-center text-body-emphasis text-decoration-none">
 				<svg class="bi me-2" width="40" height="32"><use xlink:href="#bootstrap"></use></svg>
-				<span class="fs-4">Starter template</span>
+				<span class="fs-4">LLM word probabilities demo</span>
 			</a>
 		</header>
 		<main>
@@ -172,6 +171,19 @@
 			<p class="fs-5 col-md-8">This demo allows you to enter any
 			English sentence and obtain its word probabilities as
 			determined by an LLM.</p>
+			<p>The output consists of two tables:</p>
+			<ul>
+				<li>The first table shows the conditional probabilities
+				of each individual token, colored with a heatmap.
+				All spaces in tokens have been replaced by the character
+				'_' to make it easier to identify words requiring more
+				than a single token and word boundaries.</li>
+				<li>The second table shows, for each words, the top
+				alternative words according to the LLM. You can use
+				those words to assess which kind of words were expected
+				by the LLM at every position. The words in the original
+				sentence are marked in bold.</li>
+			</ul>
 			<!-- Error: this should be inline, and yet it is not -->
 			<form id="enter_sentence">
 				<div class="form-row align-items-center">
