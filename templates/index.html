@@ -10,7 +10,7 @@
     <meta name="generator" content="Hugo 0.118.2">
     <title>LLM word probabilities demo</title>
     <link rel="canonical" href="https://getbootstrap.com/docs/5.3/examples/starter-template/">
-	<link rel="stylesheet" href="./bootstrap/css@3.css">
+	<link rel="stylesheet" href="./static/css@3.css">
 	<link href="static/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
 	<script src="static/jquery-3.7.1.min.js"crossorigin="anonymous"></script>
 
@@ -215,49 +215,39 @@
 			// Read the sentence entered by the user
 			var words = $("#sentence").val().split(" ");
 			// Send them to the LLM for testing
-			// TODO
-			// Obtain results back
-			// TODO
-			// Here's a placeholder
-			var results = [];
-			for (var i=0; i<words.length; i++)
-			{
-				var single_word = {'word': words[i],
-								   'prob': Math.random(),
-								   'next_best': [{'word': words[i], 'prob': 0.12}, {'word': words[i], 'prob': 0.10}, {'word': words[i], 'prob': 0.08}, {'word': words[i], 'prob': 0.06}, {'word': words[i], 'prob': 0.001}]
-								   };
-				results.push(single_word);
-			}
-			
-			// Display the heatmap for the given sentence
-			var header = "<thead><tr>";
-			var row_probs = "<tr>";
-			for (const word_data of results)
-			{
-				header += "<th>" + word_data['word'] + "</th>";
-				var color = "hsl(" + word_data['prob'] * 240 + ", 100%, 50%)";
-				row_probs += "<td style='background-color: " + color + ";'>" + word_data['prob'].toFixed(3) + "</td>";
-			}
-			header += "</tr></thead>";
-			row_probs += "</tr>";
-			$( "#llm_results" ).remove();
-			$( "#table_placeholder" ).append("<table id='llm_results' class='table table-stripped'></table>");
-			$( "#llm_results" ).append(header);
-			$( "#llm_results" ).append(row_probs);
-			
-			// Display the probabilities for other words
-			$( "#llm_alternatives_results" ).remove();
-			$( "#longer_table_placeholder" ).append("<table id='llm_alternatives_results' class='table table-stripped'></table>");
-			$( "#llm_alternatives_results" ).append("<thead><tr><th>Word</th><th>Probability</th><th>Top-1</th><th>Top-1 prob</th><th>Top-2</th><th>Top-2 prob</th><th>Top-3</th><th>Top-3 prob</th></tr></thead><tbody>");
-			results.forEach(function (word, index) {
-				$( "#llm_alternatives_results" ).append("<tr><th scope='row'>" + word['word'] + "</th>" +
-												"<td>" + word['prob'].toFixed(4) + "</td>"
-												+ row_for_word(word['next_best'][0]['word'], word['next_best'][0]['prob'], word['word'])
-												+ row_for_word(word['next_best'][1]['word'], word['next_best'][1]['prob'], word['word'])
-												+ row_for_word(word['next_best'][2]['word'], word['next_best'][2]['prob'], word['word'])
-												+ "</tr>");
-				});
-			$( "#llm_alternatives_results" ).append("</tbody>");
+			$.get( "/gpt2_probs", {sentence: $("#sentence").val()},
+			function(results) { 
+					// Display the heatmap for the given sentence
+					var header = "<thead><tr>";
+					var row_probs = "<tr>";
+					for (const word_data of results)
+					{
+						header += "<th>" + word_data['word'] + "</th>";
+						var color = "hsl(" + word_data['prob'] * 240 + ", 100%, 50%)";
+						row_probs += "<td style='background-color: " + color + ";'>" + word_data['prob'].toFixed(3) + "</td>";
+					}
+					header += "</tr></thead>";
+					row_probs += "</tr>";
+					$( "#llm_results" ).remove();
+					$( "#table_placeholder" ).append("<table id='llm_results' class='table table-stripped'></table>");
+					$( "#llm_results" ).append(header);
+					$( "#llm_results" ).append(row_probs);
+					
+					// Display the probabilities for other words
+					$( "#llm_alternatives_results" ).remove();
+					$( "#longer_table_placeholder" ).append("<table id='llm_alternatives_results' class='table table-stripped'></table>");
+					$( "#llm_alternatives_results" ).append("<thead><tr><th>Word</th><th>Probability</th><th>Top-1</th><th>Top-1 prob</th><th>Top-2</th><th>Top-2 prob</th><th>Top-3</th><th>Top-3 prob</th></tr></thead><tbody>");
+					results.forEach(function (word, index) {
+						$( "#llm_alternatives_results" ).append("<tr><th scope='row'>" + word['word'] + "</th>" +
+														"<td>" + word['prob'].toFixed(4) + "</td>"
+														+ row_for_word(word['next_best'][0]['word'], word['next_best'][0]['prob'], word['word'])
+														+ row_for_word(word['next_best'][1]['word'], word['next_best'][1]['prob'], word['word'])
+														+ row_for_word(word['next_best'][2]['word'], word['next_best'][2]['prob'], word['word'])
+														+ "</tr>");
+						});
+					$( "#llm_alternatives_results" ).append("</tbody>");
+				 })
+				.fail(function() { console.log('Could not read request from server'); });
 			// Required to prevent the form from actually sending
 			// data to the server
 			event.preventDefault();

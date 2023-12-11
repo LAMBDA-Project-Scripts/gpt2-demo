@@ -1,8 +1,7 @@
 import logging
 import random
 import torch
-from flask import Flask
-from flask import render_template
+from flask import Flask, render_template, request
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
 
 
@@ -20,13 +19,14 @@ def get_next_word_probs(prefix):
 
 	Parameters
 	----------
-	prefix : str
-		Prefix to use for the text generation
+	prefix : torch.tensor
+		Tensor containing the tokens used as prefix to generate the
+		next words.
 
 	Returns
 	-------
 	torch.tensor
-		Torch with the probabilities for all possible next tokens.
+		Tensor with the probabilities for all possible next tokens.
 	"""
 	# https://rycolab.io/classes/acl-2023-tutorial/
 	input_ids = prefix.to(device)
@@ -35,23 +35,50 @@ def get_next_word_probs(prefix):
 	probabilities = torch.nn.functional.softmax(logits, dim=0)
 	return probabilities
 
-@app.route("/gpt2_probs/<sentence>")
-def gpt2_probs(sentence):
+
+@app.route("/gpt2_probs",  methods=['GET'])
+def gpt2_probs():
+	""" Given a sentence, returns a list of the probabilities for each
+	individual word plus a list of the words that were more likely to
+	be chosen at any given time.
+
+	Parameters
+	----------
+	sentence : str
+		Sentence that will be used for prediction.
+
+	Returns
+	-------
+	list(dict())
+		A list of dictionaries where every dictionary corresponds to a
+		token in the original sentence. Every dictionary contains the
+		following keys:
+		  * 'word': The word that the token represents
+		  * 'prob': The probability of this token given the prefix.
+		  * 'next_best': An ordered list of the next best tokens for the
+		                 given prefix.
+
+	Notes
+	-----
+	All spaces have been replaced with '_' to make display easier to
+	understand.
+	"""
+	sentence = request.args.get('sentence', default='No sentence given', type=str)
 	input_ids = tokenizer.encode(sentence, return_tensors='pt')
 	retval = []
 	prefix = []
 	for idx, token in enumerate(input_ids[0]):
 		word = tokenizer.decode(token).replace(' ', '_')
 		if idx<2:
-			# The first two words are fully independent
+			# The first two words are fully independent, and therefore
+			# get no probability.
 			retval.append({'word': word, 'prob': 1.0,
 			               'next_best': [{'word': '-', 'prob': 1.0} for _ in range(5)]})
 
 		else:
-			# From the third word on it gets better
-			probs = get_next_word_probs(input_ids[0][:idx])
-
+			# From the third word on it gets easier.
 			# Obtain the probabilities of the current word 
+			probs = get_next_word_probs(input_ids[0][:idx])
 			next_word_as_token = input_ids[0][idx]
 			next_word_as_word = tokenizer.decode(next_word_as_token)
 			next_prob = probs[next_word_as_token].item()
@@ -64,21 +91,8 @@ def gpt2_probs(sentence):
 			retval.append({'word': next_word_as_word.replace(' ', '_'),
 							'prob': next_prob,
 							'next_best': next_best})
-	"""
-	for token in input_ids[0][1:]:
-		prefix.append(token)
-		str_prefix = ''.join(map(lambda x: tokenizer.decode(x), prefix))
-		word = tokenizer.decode(token)
-
-		prob = random.random()
-		next_best = []
-		for _ in range(5):
-			rand_word = tokenizer.decode([random.randint(0,5000)]).replace(' ', '_')
-			rand_prob = random.random()
-			next_best.append({'word': rand_word, 'prob': rand_prob})
-		retval.append({'word': word, 'prob': prob, 'next_best': next_best})
-	"""
 	return retval
+
 
 @app.route("/")
 def main_screen():
