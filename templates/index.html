@@ -178,6 +178,10 @@
 				All spaces in tokens have been replaced by the character
 				'_' to make it easier to identify words requiring more
 				than a single token and word boundaries.</li>
+				<li>The heatmap represents how likely a specific word is.
+				Lower probability values are blue, higher probability
+				values are red, and average probability values are
+				green.</li>
 				<li>The second table shows, for each words, the top
 				alternative words according to the LLM. You can use
 				those words to assess which kind of words were expected
@@ -198,7 +202,7 @@
 			</form>
 			
 			<div id="table_placeholder" class="table-responsive"></div>
-
+				<div id="tables"></div>
 			<div id="longer_table_placeholder"></div>
 		</main>
 		<footer class="pt-5 my-5 text-body-secondary border-top">
@@ -223,27 +227,69 @@
 			retval += "<td>" + prob.toFixed(4) + "</td>";
 			return retval;
 		}
+		function get_color(prob_val)
+		{
+			// Color algorithm based on https://stackoverflow.com/a/27263918
+			var mid_point = 0.01;
+			var high_point = 0.4;
+			var final_val = prob_val;
+			if (prob_val <= mid_point)
+			{
+				final_val = 0.5 * (prob_val / mid_point);
+			}
+			else
+			{
+				final_val = 0.5 + 0.5 * ((Math.min(high_point, prob_val)-mid_point)/(high_point-mid_point));
+			}
+			// Invert the scale because it makes more sense.
+			final_val = 1 - final_val;
+			console.log("Starting value: " + prob_val + ", Converted value: " + final_val); 
+			return "hsl(" + final_val * 240 + ", 100%, 50%)";
+		}
+
 		$( "#enter_sentence" ).on( "submit", function( event ) {
 			// Read the sentence entered by the user
 			var words = $("#sentence").val().split(" ");
 			// Send them to the LLM for testing
 			$.get( "/gpt2_probs", {sentence: $("#sentence").val()},
 			function(results) { 
-					// Display the heatmap for the given sentence
-					var header = "<thead><tr>";
-					var row_probs = "<tr>";
-					for (const word_data of results)
+					// Function that displays results along with a heatmap.
+					
+					// First, we clear any table that may have been there before
+					$( "#tables" ).remove();
+					$( "#table_placeholder" ).append("<div id='tables'></div>");
+
+					// We then iterate 15 words at the time for the heatmap.
+					// Why 15? Because it fits nicely on my screen.
+					var max_rows = 15;
+					var header;
+					var row_probs;
+					var color;
+					console.log(results);
+					console.log(results.len);
+					console.log(max_rows);
+					console.log(Math.ceil(results.len/max_rows));
+					for (var offset=0; offset<Math.ceil(results.length/max_rows); offset++)
 					{
-						header += "<th>" + word_data['word'] + "</th>";
-						var color = "hsl(" + word_data['prob'] * 240 + ", 100%, 50%)";
-						row_probs += "<td style='background-color: " + color + ";'>" + word_data['prob'].toFixed(3) + "</td>";
+						console.log(offset);
+						sub_results = results.slice(max_rows*offset, max_rows*(offset+1));	
+						// Display the heatmap for the given sentence
+						header = "<thead><tr>";
+						row_probs = "<tr>";
+						for (const word_data of sub_results)
+						{
+							header += "<th>" + word_data['word'] + "</th>";
+							//var color = "hsl(" + word_data['prob'] * 240 + ", 100%, 50%)";
+							color = get_color(word_data['prob']);
+							row_probs += "<td style='background-color: " + color + ";'>" + word_data['prob'].toFixed(3) + "</td>";
+						}
+						header += "</tr></thead>";
+						row_probs += "</tr>";
+						console.log("<table id='llm_results_" + offset + "' class='table table-stripped' style='text-align: center;'></table>");
+						$( "#tables" ).append("<table id='llm_results_" + offset + "' class='table table-stripped' style='text-align: center;'></table>");
+						$( "#llm_results_" + offset ).append(header);
+						$( "#llm_results_" + offset ).append(row_probs);
 					}
-					header += "</tr></thead>";
-					row_probs += "</tr>";
-					$( "#llm_results" ).remove();
-					$( "#table_placeholder" ).append("<table id='llm_results' class='table table-stripped'></table>");
-					$( "#llm_results" ).append(header);
-					$( "#llm_results" ).append(row_probs);
 					
 					// Display the probabilities for other words
 					$( "#llm_alternatives_results" ).remove();
