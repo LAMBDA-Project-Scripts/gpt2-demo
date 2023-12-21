@@ -2,14 +2,18 @@ import logging
 import random
 import torch
 from flask import Flask, render_template, request
-from transformers import GPT2Tokenizer, GPT2LMHeadModel
+from transformers import GPT2Tokenizer, GPT2LMHeadModel, AutoTokenizer, AutoModelWithLMHead, set_seed
 
-
+set_seed(16)
 app = Flask(__name__)
 
 device =  "cuda:0" if torch.cuda.is_available() else "cpu"
-tokenizer = GPT2Tokenizer.from_pretrained('gpt2') # Also in -large
-model = GPT2LMHeadModel.from_pretrained('gpt2')
+# English
+#tokenizer = GPT2Tokenizer.from_pretrained('gpt2') # Also in -large
+#model = GPT2LMHeadModel.from_pretrained('gpt2')
+# German
+tokenizer = AutoTokenizer.from_pretrained("dbmdz/german-gpt2")
+model = AutoModelWithLMHead.from_pretrained("dbmdz/german-gpt2")
 model.to(device)
 
 
