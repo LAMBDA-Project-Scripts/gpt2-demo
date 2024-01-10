@@ -29,7 +29,7 @@ pip3 install torch==1.12.0+cu113 torchvision==0.13.0+cu113 torchaudio==0.12.0 fl
 
 Running
 -------
-You can run the server with the following commands:
+You can run the interactive server with the following commands:
 
 ```
 source venv/bin/activate
@@ -38,3 +38,10 @@ flask --app server run
 
 This will start a webserver that you can access with your web browser of choice
 and typing `http://localhost:5000`.
+
+There are two other scripts in the repository:
+
+  * `gpt2_pred.py` is a minimal script designed to show how to obtain
+    probabilities from a GPT-2 model.
+  * `compare_sentences.py` uses GPT-2 to calculate mean token
+    probability and perplexity for a set of paired sentences.
