@@ -3,14 +3,23 @@ import os
 import torch
 from transformers import GPT2Tokenizer, GPT2LMHeadModel, AutoTokenizer, AutoModelWithLMHead, set_seed
 
+"""Code for comparing sentences side-by-side
 
+This script reads a series of paired sentences and prints both their
+mean token probability and perplexity side-by-side.
+"""
+
+
+# Sets the random seed to obtain repeatable results.
 set_seed(16)
+# Device to use - this code will use a GPU if available, and otherwise
+# all code will run on the CPU.
 device =  "cuda:0" if torch.cuda.is_available() else "cpu"
-# gpt2, gpt2-large
+# The tokenizer used to split strings into tokens.
+# Some alternatives: gpt2, gpt2-large, dbdmz/german-gpt2
 tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+# GPT-2 model. Must match the tokenizer above.
 model = GPT2LMHeadModel.from_pretrained('gpt2')
-#tokenizer = AutoTokenizer.from_pretrained("dbmdz/german-gpt2")
-#model = AutoModelWithLMHead.from_pretrained("dbmdz/german-gpt2")
 model.to(device)
 
 
@@ -66,7 +75,7 @@ def get_text_perplexity(text):
 
 	Notes
 	-----
-	Code inspired by https://huggingface.co/docs/transformers/perplexity
+	Based on code by https://huggingface.co/docs/transformers/perplexity
 	"""
 	max_length = model.config.n_positions
 	# stride = 512
@@ -85,14 +94,11 @@ def get_text_perplexity(text):
 
 		with torch.no_grad():
 			outputs = model(input_ids, labels=target_ids)
-
 			# loss is calculated using CrossEntropyLoss which averages over valid labels
 			# N.B. the model only calculates loss over trg_len - 1 labels, because it internally shifts the labels
 			# to the left by 1.
 			neg_log_likelihood = outputs.loss
-
 		nlls.append(neg_log_likelihood)
-
 		prev_end_loc = end_loc
 		if end_loc == seq_len:
 			break
@@ -241,28 +247,28 @@ def needleman_wunsch(x, y, match = 1, mismatch = 1, gap = 1):
 
 
 if __name__ == '__main__':
+	# Read the paired sentences.
+	# These files are not part of the repository and therefore you will
+	# have to modify these variables to suit your specific environment.
 	source_dir = os.path.join('/', 'home', 'uni', 'Projects', '2023', 'first_protocol', 'stimuli-pro-loud')
+	stimuli1_file = os.path.join(source_dir, 'stimulus_1.txt')
+	stimuli2_file = os.path.join(source_dir, 'stimulus_2.txt')
+
 	stimuli1 = []
 	stimuli2 = []
-	with open(os.path.join(source_dir, 'stimulus_1.txt'), 'r') as fp:
+	with open(stimuli1_file, 'r') as fp:
 		for line in fp:
 			stimuli1.append(line)
-	with open(os.path.join(source_dir, 'stimulus_2.txt'), 'r') as fp:
+	with open(stimuli2_file, 'r') as fp:
 		for line in fp:
 			stimuli2.append(line)
+	assert len(stimuli1) == len(stimuli2), "The stimuli files differ in length"
+	assert len(stimuli1) > 0, "No stimuli found in the given files"
 
-	print(cloze_finalword("Joe flicked the grasshopper."))
-	tokens = tokenizer.encode("Joe flicked the grasshopper.", return_tensors='pt')
-	probs1 = get_text_probs(tokens)
-	print(probs1)
-	import sys
-	sys.exit()
-
-	# T
-	print(stimuli1[8])
-	print(stimuli2[8])
-	tokens_l = tokenizer.encode(stimuli1[8], return_tensors='pt')
-	tokens_r = tokenizer.encode(stimuli2[8], return_tensors='pt')
+	# Example of the Needleman-Wunsch algorithm for a random stimuli.
+	random_index = 8
+	tokens_l = tokenizer.encode(stimuli1[random_index], return_tensors='pt')
+	tokens_r = tokenizer.encode(stimuli2[random_index], return_tensors='pt')
 	t1 = list(map(lambda x: tokenizer.decode(x), tokens_l[0].numpy()))
 	t2 = list(map(lambda x: tokenizer.decode(x), tokens_r[0].numpy()))
 	
@@ -284,5 +290,6 @@ if __name__ == '__main__':
 
 		mean_t1 = sum(map(lambda x: x['prob'], probs1))/len(probs1)
 		mean_t2 = sum(map(lambda x: x['prob'], probs2))/len(probs2)
-		# Note: Look at https://stackoverflow.com/questions/63543006/how-can-i-find-the-probability-of-a-sentence-using-gpt-2
+		# Note: for a discussion on other measures check
+		# https://stackoverflow.com/questions/63543006/how-can-i-find-the-probability-of-a-sentence-using-gpt-2
 		print(f'{mean_t1:.4f}, {mean_t2:.4f} {mean_t1-mean_t2:.4f} {ppl1:.4f} {ppl2:.4f}')
