@@ -1,7 +1,10 @@
 LLM Demo
 ========
 
-A demo of word prediction probabilities for GPT-2.
+An interactive demo of word prediction probabilities for GPT-2.
+Given a text in German, the code displays the token probabilities for
+any given text in German along with the top-k most likely tokens
+at every point.
 
 
 Installation
