@@ -1,8 +1,19 @@
 from transformers import GPT2Tokenizer, GPT2LMHeadModel
 import torch
 
+"""Minimal GPT-2 demo.
+
+This script shows the minimum code required to obtain token
+probabilities with GPT-2.
+"""
+
+# Device to use - this code will use a GPU if available, and otherwise
+# all code will run on the CPU
 device =  "cuda:0" if torch.cuda.is_available() else "cpu"
-tokenizer = GPT2Tokenizer.from_pretrained('gpt2') # Also in -large
+# The tokenizer used to split strings into tokens.
+# Some alternatives: gpt2, gpt2-large, dbdmz/german-gpt2
+tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+# GPT-2 model. Must match the tokenizer above.
 model = GPT2LMHeadModel.from_pretrained('gpt2')
 model.to(device)
 
@@ -31,11 +42,6 @@ def get_next_word_probs(prefix):
 
 
 if __name__ == '__main__':
-	"""
-	text = "It flies like a crow."
-	print(tokenizer.encode('crow'))
-	print(tokenizer.encode(' crow'))
-	"""
 	text = "I spread the butter on my bread with my knife"
 	words = text.split()
 	for idx, word in enumerate(words):
@@ -60,8 +66,11 @@ if __name__ == '__main__':
 				print(f"Encoding: {as_tokens}")
 				next_word_as_token = next_word_as_token[0]
 		except IndexError:
+			# This error shouldn't happen, but there's a bug in some
+			# versions of dbdmz/german-gpt2 where the EOS token is not
+			# mapped correctly.
+			# More info: https://github.com/stefan-it/german-gpt2/issues/9
 			next_word = "<eos>"
 			next_word_as_token = 50256
 		token_prob = probs[next_word_as_token].item()
 		print(f"  *{token_prob:.6f} '{next_word}'")
-
