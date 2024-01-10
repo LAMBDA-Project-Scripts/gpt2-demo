@@ -7,10 +7,10 @@ from transformers import GPT2Tokenizer, GPT2LMHeadModel, AutoTokenizer, AutoMode
 set_seed(16)
 device =  "cuda:0" if torch.cuda.is_available() else "cpu"
 # gpt2, gpt2-large
-#tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
-#model = GPT2LMHeadModel.from_pretrained('gpt2')
-tokenizer = AutoTokenizer.from_pretrained("dbmdz/german-gpt2")
-model = AutoModelWithLMHead.from_pretrained("dbmdz/german-gpt2")
+tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+model = GPT2LMHeadModel.from_pretrained('gpt2')
+#tokenizer = AutoTokenizer.from_pretrained("dbmdz/german-gpt2")
+#model = AutoModelWithLMHead.from_pretrained("dbmdz/german-gpt2")
 model.to(device)
 
 
@@ -99,6 +99,66 @@ def get_text_perplexity(text):
 	return torch.exp(torch.stack(nlls).mean()).item()
 
 
+def cloze_finalword(text):
+	'''
+	This is a version of cloze generator that can handle words that are
+	not in the model's dictionary.
+	
+	References
+	----------
+	https://github.com/samer-noureddine/GPT-2-for-Psycholinguistic-Applications/blob/master/get_probabilities.py
+	'''
+	def softmax(x):
+		exps = np.exp(x)
+		return np.divide(exps, np.sum(exps))
+
+	whole_text_encoding = tokenizer.encode(text)
+	# Parse out the stem of the whole sentence (i.e., the part leading
+	# up to but not including the critical word)
+	text_list = text.split()
+	stem = ' '.join(text_list[:-1])
+	stem_encoding = tokenizer.encode(stem)
+	# cw_encoding is just the difference between whole_text_encoding and stem_encoding
+	# note: this might not correspond exactly to the word itself
+	# e.g., in 'Joe flicked the grasshopper', the difference between stem and whole text (i.e., the cw) is not 'grasshopper', but
+	# instead it is ' grass','ho', and 'pper'. This is important when calculating the probability of that sequence.
+	cw_encoding = whole_text_encoding[len(stem_encoding):]
+
+	# Run the entire sentence through the model. Then go "back in time" to look at what the model predicted for each token, starting at the stem.
+	# e.g., for 'Joe flicked the grasshopper', go back to when the model had just received 'Joe flicked the' and
+	# find the probability for the next token being 'grass'. Then for 'Joe flicked the grass' find the probability that
+	# the next token will be 'ho'. Then for 'Joe flicked the grassho' find the probability that the next token will be 'pper'.
+
+	# Put the whole text encoding into a tensor, and get the model's comprehensive output
+	tokens_tensor = torch.tensor([whole_text_encoding])
+	tokens_tensor = tokens_tensor.to(device)
+
+	with torch.no_grad():
+		outputs = model(tokens_tensor)
+		predictions = outputs[0]   
+
+	logprobs = []
+	# start at the stem and get downstream probabilities incrementally from the model(see above)
+	# I should make the below code less awkward when I find the time
+	start = -1-len(cw_encoding)
+	for j in range(start,-1,1):
+			raw_output = []
+			for i in predictions[-1][j]:
+					raw_output.append(i.item())	
+			logprobs.append(np.log(softmax(raw_output)))
+			
+	# if the critical word is three tokens long, the raw_probabilities should look something like this:
+	# [ [0.412, 0.001, ... ] ,[0.213, 0.004, ...], [0.002,0.001, 0.93 ...]]
+	# Then for the i'th token we want to find its associated probability
+	# this is just: raw_probabilities[i][token_index]
+	conditional_probs = []
+	for cw,prob in zip(cw_encoding,logprobs):
+			conditional_probs.append(prob[cw])
+	# now that you have all the relevant probabilities, return their product.
+	# This is the probability of the critical word given the context before it.
+	print(conditional_probs)
+	return np.exp(np.sum(conditional_probs))
+
 
 def needleman_wunsch(x, y, match = 1, mismatch = 1, gap = 1):
 	""" Aligns two sequences using the Needleman-Wunsch algorithm.
@@ -184,12 +244,20 @@ if __name__ == '__main__':
 	source_dir = os.path.join('/', 'home', 'uni', 'Projects', '2023', 'first_protocol', 'stimuli-pro-loud')
 	stimuli1 = []
 	stimuli2 = []
-	with open(os.path.join(source_dir, 'stimulus1.txt'), 'r') as fp:
+	with open(os.path.join(source_dir, 'stimulus_1.txt'), 'r') as fp:
 		for line in fp:
 			stimuli1.append(line)
-	with open(os.path.join(source_dir, 'stimulus2.txt'), 'r') as fp:
+	with open(os.path.join(source_dir, 'stimulus_2.txt'), 'r') as fp:
 		for line in fp:
 			stimuli2.append(line)
+
+	print(cloze_finalword("Joe flicked the grasshopper."))
+	tokens = tokenizer.encode("Joe flicked the grasshopper.", return_tensors='pt')
+	probs1 = get_text_probs(tokens)
+	print(probs1)
+	import sys
+	sys.exit()
+
 	# T
 	print(stimuli1[8])
 	print(stimuli2[8])
