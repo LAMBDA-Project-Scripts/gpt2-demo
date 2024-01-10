@@ -278,8 +278,8 @@ if __name__ == '__main__':
 			print(f'*\t{at1}\t\t{at2}')
 		else:
 			print(f' \t{at1}\t\t{at2}')
-
-    # Probability and perplexity of each text, side-by-side
+		
+	# Probability and perplexity of each text, side-by-side
 	for stim1, stim2 in zip(stimuli1, stimuli2):
 		tokens = tokenizer.encode(stim1, return_tensors='pt')
 		probs1 = get_text_probs(tokens)
