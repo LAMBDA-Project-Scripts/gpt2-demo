@@ -15,7 +15,7 @@ In a regular setup you should be able to create a proper environment with the
 commands:
 
 ```
-python -m venv venv
+python3 -m venv venv
 source venv/bin/activate
 pip3 install -r requirements.txt
 ```

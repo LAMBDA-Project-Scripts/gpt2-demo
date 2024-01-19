@@ -250,7 +250,7 @@ if __name__ == '__main__':
 	# Read the paired sentences.
 	# These files are not part of the repository and therefore you will
 	# have to modify these variables to suit your specific environment.
-	source_dir = os.path.join('/', 'home', 'uni', 'Projects', '2023', 'first_protocol', 'stimuli-pro-loud')
+	source_dir = os.path.join('.')
 	stimuli1_file = os.path.join(source_dir, 'stimulus_1.txt')
 	stimuli2_file = os.path.join(source_dir, 'stimulus_2.txt')
 
