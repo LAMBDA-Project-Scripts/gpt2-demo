@@ -45,3 +45,4 @@ There are two other scripts in the repository:
     probabilities from a GPT-2 model.
   * `compare_sentences.py` uses GPT-2 to calculate mean token
     probability and perplexity for a set of paired sentences.
+    This script uses the German GPT-2 version of the model.

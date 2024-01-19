@@ -16,10 +16,10 @@ set_seed(16)
 # all code will run on the CPU.
 device =  "cuda:0" if torch.cuda.is_available() else "cpu"
 # The tokenizer used to split strings into tokens.
-# Some alternatives: gpt2, gpt2-large, dbdmz/german-gpt2
-tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+# Some alternatives: gpt2, gpt2-large, dbmdz/german-gpt2
+tokenizer = AutoTokenizer.from_pretrained('dbmdz/german-gpt2')
 # GPT-2 model. Must match the tokenizer above.
-model = GPT2LMHeadModel.from_pretrained('gpt2')
+model = AutoModelWithLMHead.from_pretrained('dbmdz/german-gpt2')
 model.to(device)
 
 
